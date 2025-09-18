@@ -1,0 +1,289 @@
+doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Recipe & Meal Planner — Demo</title>
+  <style>
+    :root{--bg:#579ecd;--card:#b5d1e1;--muted:#1954c9;--accent:#e0359f;--accent-2:#2b6cb0}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0;background:linear-gradient(180deg,#fffdfa, #f7fbff);color:#072034}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,255,255,0.8);backdrop-filter:blur(6px);border-bottom:1px solid #eef3f7}
+    header h1{margin:0;font-size:1.1rem}
+    .container{display:grid;grid-template-columns:320px 1fr 320px;gap:16px;padding:16px}
+    .card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 8px 24px rgba(2,6,23,0.06)}
+    .muted{color:var(--muted);font-size:0.9rem}
+    /* search */
+    .search-row{display:flex;gap:8px;margin-bottom:8px}
+    input[type=text],select{padding:8px;border-radius:8px;border:1px solid #dde1e8;width:100%}
+    button{background:var(--accent);color:#d8d2d2;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #f0e6df;color:var(--accent);}
+    /* recipe list */
+    .recipe-list{display:flex;flex-direction:column;gap:10px;max-height:56vh;overflow:auto;padding-right:6px}
+    .recipe-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;border:1px solid #f3f6f8}
+    .thumb{width:68px;height:68px;border-radius:8px;background:#f7f9fb;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .meta{flex:1}
+    .tags{display:flex;gap:6px;margin-top:6px}
+    .tag{padding:4px 8px;border-radius:999px;font-size:0.8rem;background:#fff6f1;border:1px solid #ffe7d5;color:var(--accent)}
+    /* detail panel */
+    .grid-two{display:grid;grid-template-columns:1fr 320px;gap:12px}
+    .ing-list{list-style:none;padding:0;margin:0}
+    .ing-list li{padding:6px 0;border-bottom:1px dashed #f3f6f8}
+    .steps{counter-reset:step;margin:0;padding:0}
+    .steps li{list-style:none;padding:8px 0}
+    .steps li::before{counter-increment:step;content:counter(step) " ";font-weight:700;margin-right:8px}
+    /* planner calendar */
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .cal-day{min-height:80px;padding:8px;border-radius:8px;border:1px dashed #eef4f8;background:linear-gradient(180deg,#fff,#fbfbff)}
+    .cal-day h4{margin:0;font-size:0.85rem}
+    .scheduled{margin-top:6px;padding:6px;border-radius:8px;background:#fff8f0;border:1px solid #ffe7d5;cursor:grab}
+    /* grocery */
+    .grocery-list{list-style:none;padding:0;margin:0}
+    .grocery-list li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f6f8}
+    /* ratings/comments */
+    .comment{padding:8px;border-radius:8px;border:1px solid #f0f4f7;margin-bottom:8px}
+    /* responsive */
+    @media(max-width:1100px){.container{grid-template-columns:1fr;}.grid-two{grid-template-columns:1fr}}
+    /* small helpers */
+    .small{font-size:0.9rem}
+    .kbd{background:#f3f5f7;border-radius:6px;padding:4px 6px;font-weight:700}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍽️ Smart Recipe & Meal Planner </h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="muted">Mock comments/ratings • Data in localStorage</div>
+      <button id="resetAll" class="ghost">Reset demo</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- left column: search & recipes -->
+    <aside class="card" aria-label="Search & Recipes">
+      <div class="search-row">
+        <input id="searchInput" type="text" placeholder="Search recipes or ingredients">
+        <button id="searchBtn">Search</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <select id="filterCuisine"><option value="any">Any cuisine</option><option>Indian</option><option>Italian</option><option>Mexican</option></select>
+        <select id="filterDiet"><option value="any">Any diet</option><option>Vegetarian</option><option>Vegan</option><option>Gluten-free</option></select>
+      </div>
+      <h4 style="margin:6px 0">Recipes</h4>
+      <div class="recipe-list" id="recipeList"></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><button id="addMock" class="ghost">Add mock recipe</button><button id="favOnly" class="ghost">Show favorites</button></div>
+    </aside>
+
+    <!-- center: detail + planner -->
+    <section class="card">
+      <div class="grid-two">
+        <div>
+          <div id="detailArea">
+            <h2 id="detailTitle">Select a recipe</h2>
+            <div id="detailMeta" class="muted">—</div>
+            <div style="display:flex;gap:12px;margin-top:12px;align-items:flex-start">
+              <div style="flex:1">
+                <h3>Ingredients</h3>
+                <ul class="ing-list" id="ingList"></ul>
+                <h3 style="margin-top:12px">Steps</h3>
+                <ol class="steps" id="stepsList"></ol>
+              </div>
+              <aside style="width:300px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><strong>Recipe tools</strong><div class="muted">Timers & notes</div></div>
+                <div style="margin-top:8px">
+                  <div style="display:flex;gap:8px;margin-bottom:8px"><button id="startTimer">Start step timer</button><button id="addToPlanner" class="ghost">Add to planner</button></div>
+                  <textarea id="noteBox" placeholder="Your notes..." rows="4" style="width:100%;border-radius:8px;border:1px solid #eef3f7;padding:8px"></textarea>
+                </div>
+                <div style="margin-top:12px">
+                  <strong>Nutrition</strong>
+                  <div class="muted small">Hover items for tooltip</div>
+                  <div style="margin-top:6px"><span class="tag" title="Calories per serving">250 kcal</span> <span class="tag" title="Protein">12 g protein</span></div>
+                </div>
+                <div style="margin-top:12px">
+                  <strong>Ratings</strong>
+                  <div id="ratingArea" style="margin-top:6px"></div>
+                </div>
+              </aside>
+            </div>
+            <hr style="margin:12px 0;border:none;border-top:1px dashed #eef6f9">
+            <div>
+              <strong>Comments</strong>
+              <div id="commentsArea" style="margin-top:8px"></div>
+              <div style="display:flex;gap:8px;margin-top:8px"><input id="commentInput" type="text" placeholder="Add a comment" style="flex:1;padding:8px;border-radius:8px;border:1px solid #eef3f7"><button id="postComment" class="ghost">Post</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 8px 0">Meal Planner — Drag recipes to days</h3>
+          <div class="calendar" id="calendar"></div>
+          <div style="margin-top:8px;display:flex;gap:8px"><button id="generateGrocery">Generate grocery list</button><button id="clearPlanner" class="ghost">Clear planner</button></div>
+          <hr style="margin:12px 0;border:none;border-top:1px dashed #eef6f9">
+          <h4 style="margin:6px 0">Grocery List</h4>
+          <ul class="grocery-list" id="groceryList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- right: favorites, pantry, responsive tips -->
+    <aside class="card">
+      <h3 style="margin:0 0 8px 0">Favorites</h3>
+      <div id="favoritesArea" class="muted small">No favorites yet</div>
+      <hr style="margin:12px 0;border:none;border-top:1px dashed #eef6f9">
+      <h4 style="margin:6px 0">Pantry (mock)</h4>
+      <div class="muted small">Click ingredients to toggle available</div>
+      <ul id="pantryArea" class="muted small"></ul>
+      <hr style="margin:12px 0;border:none;border-top:1px dashed #eef6f9">
+      <h4 style="margin:6px 0">Quick tips</h4>
+      <ul class="muted small">
+        <li>Substitute yogurt for sour cream.</li>
+        <li>Use leftovers for next-day lunches.</li>
+        <li>Freeze herbs in oil cubes.</li>
+      </ul>
+    </aside>
+
+  </main>
+
+  <script>
+    // Simple demo model persisted to localStorage
+    const KEY = 'smartmeals_demo_v1';
+    let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if(!state.recipes) state.recipes = sampleData();
+    if(!state.favorites) state.favorites = [];
+    if(!state.pantry) state.pantry = ['salt','pepper','onion','garlic','tomato'];
+    if(!state.planner) state.planner = {}; // keyed by date-string
+    if(!state.comments) state.comments = {};
+
+    const el = id => document.getElementById(id);
+
+    // Render recipes list according to filters
+    function renderRecipes(list){
+      const container = el('recipeList'); container.innerHTML=''; if(list.length===0) container.innerHTML='<div class="muted">No recipes</div>';
+      list.forEach(r=>{
+        const div = document.createElement('div'); div.className='recipe-item';
+        div.draggable = true; div.dataset.id = r.id;
+        div.addEventListener('dragstart', ev=>ev.dataTransfer.setData('text/plain', r.id));
+        div.innerHTML = `<div class="thumb">${r.title.split(' ').slice(0,2).map(w=>w[0]).join('')}</div>
+          <div class="meta"><strong>${r.title}</strong><div class="muted small">${r.cuisine} • ${r.diet || 'General'}</div><div class="tags">${r.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><button class="ghost" onclick="viewRecipe('${r.id}')">Open</button><button class="ghost" onclick="toggleFav('${r.id}')">${state.favorites.includes(r.id)?'Unfav':'Fav'}</button></div>`;
+        container.appendChild(div);
+      });
+    }
+
+    function sampleData(){
+      return [
+        {id:'r1',title:'Tomato Basil Pasta',cuisine:'Italian',diet:'Vegetarian',tags:['Quick','15m'],ingredients:['pasta','tomato','basil','olive oil','garlic'],steps:['Boil pasta','Make sauce with tomato and garlic','Toss with basil and oil'],nutrition:{cal:420,protein:12},rating:4.2},
+        {id:'r2',title:'Chickpea Curry',cuisine:'Indian',diet:'Vegan',tags:['Hearty'],ingredients:['chickpeas','onion','tomato','cumin','turmeric'],steps:['Sauté onions','Add spices and tomato','Add chickpeas and simmer'],nutrition:{cal:360,protein:14},rating:4.6},
+        {id:'r3',title:'Veggie Stir Fry',cuisine:'Chinese',diet:'Vegan',tags:['Fast'],ingredients:['broccoli','carrot','soy sauce','garlic'],steps:['Chop veg','Stir fry with sauce'],nutrition:{cal:280,protein:8},rating:4.0}
+      ];
+    }
+
+    // Initial render
+    function init(){
+      renderRecipes(state.recipes);
+      renderPlanner();
+      renderFavorites();
+      renderPantry();
+    }
+
+    // Search/filter
+    el('searchBtn').addEventListener('click', ()=>{
+      const q = el('searchInput').value.trim().toLowerCase(); const cuisine = el('filterCuisine').value; const diet = el('filterDiet').value;
+      let filtered = state.recipes.filter(r=> (q==='' || r.title.toLowerCase().includes(q) || r.ingredients.join(' ').toLowerCase().includes(q)) );
+      if(cuisine!=='any') filtered = filtered.filter(r=>r.cuisine===cuisine);
+      if(diet!=='any') filtered = filtered.filter(r=>r.diet===diet);
+      renderRecipes(filtered);
+    });
+
+    // View recipe details
+    function viewRecipe(id){
+      const r = state.recipes.find(x=>x.id===id); if(!r) return;
+      el('detailTitle').textContent = r.title; el('detailMeta').textContent = `${r.cuisine} • ${r.diet || 'General'}`;
+      el('ingList').innerHTML = r.ingredients.map(i=>`<li><label><input type=checkbox data-ing="${i}" ${state.pantry.includes(i)?'checked':''} onchange="togglePantryItem('${i}', this.checked)"> ${i}</label></li>`).join('');
+      el('stepsList').innerHTML = r.steps.map(s=>`<li>${s} <button onclick="startStepTimer(5)">⏱ 5m</button></li>`).join('');
+      // ratings
+      el('ratingArea').innerHTML = `⭐ ${r.rating} • <button class='ghost' onclick="rate('${r.id}',5)">Rate 5</button>`;
+      // comments
+      const coms = state.comments[r.id] || [];
+      el('commentsArea').innerHTML = coms.map(c=>`<div class='comment'><strong>${escapeHTML(c.user)}</strong><div class='muted small'>${escapeHTML(c.text)}</div></div>`).join('') || '<div class="muted">No comments</div>';
+      // attach handlers
+      el('postComment').onclick = ()=>{ const t = el('commentInput').value.trim(); if(!t) return alert('Type a comment'); state.comments[r.id]=state.comments[r.id]||[]; state.comments[r.id].push({user:'You',text:t}); el('commentInput').value=''; save(); viewRecipe(id); };
+      // store lastViewed id
+      state.lastViewed = id; save();
+    }
+    window.viewRecipe = viewRecipe;
+
+    // Favorites
+    function toggleFav(id){ if(state.favorites.includes(id)){ state.favorites = state.favorites.filter(x=>x!==id); } else { state.favorites.push(id); } save(); renderFavorites(); renderRecipes(state.recipes); }
+    window.toggleFav = toggleFav;
+    function renderFavorites(){ const area = el('favoritesArea'); if(state.favorites.length===0) area.textContent='No favorites yet'; else area.innerHTML = state.favorites.map(id=>{ const r = state.recipes.find(x=>x.id===id); return `<div style="margin-bottom:8px"><strong>${r.title}</strong> <button class='ghost' onclick="viewRecipe('${r.id}')">Open</button></div>` }).join(''); }
+
+    // Pantry
+    function renderPantry(){ const p = el('pantryArea'); p.innerHTML = state.pantry.map(i=>`<li><button class='ghost' onclick="togglePantryItem('${i}', !state.pantry.includes('${i}'))">${i} ✓</button></li>`).join(''); }
+    window.togglePantryItem = function(item, check){ if(check){ if(!state.pantry.includes(item)) state.pantry.push(item); } else { state.pantry = state.pantry.filter(x=>x!==item); } save(); renderPantry(); if(state.lastViewed) viewRecipe(state.lastViewed); }
+
+    // Planner calendar (7-day starting today)
+    function renderPlanner(){ const cal = el('calendar'); cal.innerHTML=''; const today = new Date(); for(let i=0;i<7;i++){ const d = new Date(today); d.setDate(today.getDate()+i); const key = d.toISOString().slice(0,10);
+      const div = document.createElement('div'); div.className='cal-day'; div.dataset.day=key; div.innerHTML = `<h4>${key}</h4><div class='slot' id='slot-${key}'></div>`;
+      // allow drop
+      div.addEventListener('dragover', ev=>ev.preventDefault()); div.addEventListener('drop', ev=>{ ev.preventDefault(); const id = ev.dataTransfer.getData('text/plain'); scheduleRecipe(key, id); });
+      // show scheduled
+      const slot = div.querySelector('.slot'); const arr = state.planner[key]||[]; arr.forEach(rid=>{ const r = state.recipes.find(x=>x.id===rid); const s = document.createElement('div'); s.className='scheduled'; s.textContent = r.title; s.draggable=true; s.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', JSON.stringify({from:key,id:rid}))); slot.appendChild(s); });
+      cal.appendChild(div);
+    }
+    }
+
+    function scheduleRecipe(day,id){ state.planner[day] = state.planner[day]||[]; state.planner[day].push(id); save(); renderPlanner(); }
+    window.scheduleRecipe = scheduleRecipe;
+
+    // Dragging scheduled items to reorder/remove
+    document.addEventListener('dragend', ev=>{
+      try{ const data = ev.dataTransfer.getData('text/plain'); const parsed = JSON.parse(data); if(parsed.from){ // dropped somewhere else? For brevity, ignore complex reorg in demo
+        // remove from original
+        state.planner[parsed.from] = (state.planner[parsed.from]||[]).filter(x=>x!==parsed.id); save(); renderPlanner();
+      }}catch(e){}
+    });
+
+    // Grocery generation: aggregate ingredients from planner
+    el('generateGrocery').addEventListener('click', ()=>{
+      const items = {};
+      Object.values(state.planner).flat().forEach(rid=>{ const r = state.recipes.find(x=>x.id===rid); if(!r) return; r.ingredients.forEach(i=>items[i]=(items[i]||0)+1); });
+      const list = el('groceryList'); list.innerHTML = Object.keys(items).map(k=>`<li>${k} <button class='ghost' onclick="toggleHave('${k}')">Have</button></li>`).join('') || '<div class="muted">No items</div>';
+    });
+
+    window.toggleHave = function(item){ alert(`Toggled have for ${item} (demo)`); }
+
+    el('clearPlanner').addEventListener('click', ()=>{ if(confirm('Clear planner?')){ state.planner={}; save(); renderPlanner(); } });
+
+    // Timer (basic)
+    function startStepTimer(mins){ const ms = mins*60*1000; alert(`Starting ${mins} minute timer (demo).`); setTimeout(()=>alert('Timer finished!'), Math.min(ms, 5*60*1000)); }
+    window.startStepTimer = startStepTimer;
+
+    // Ratings
+    window.rate = function(id, val){ const r = state.recipes.find(x=>x.id===id); if(!r) return; r.rating = Math.round(((r.rating||0)+val)/2*10)/10; save(); viewRecipe(id); }
+
+    // Comments are saved in viewRecipe via post handler
+
+    // Utilities
+    function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+    function escapeHTML(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // demo controls
+    el('addMock').addEventListener('click', ()=>{ const newr = {id:'r'+Date.now(),title:'Quick Omelette',cuisine:'General',diet:'Vegetarian',tags:['Quick','Breakfast'],ingredients:['egg','salt','butter'],steps:['Beat eggs','Cook in pan'],nutrition:{cal:220,protein:14},rating:4.1}; state.recipes.push(newr); save(); renderRecipes(state.recipes); });
+    el('favOnly').addEventListener('click', ()=>{ renderRecipes(state.recipes.filter(r=>state.favorites.includes(r.id))); });
+    el('resetAll').addEventListener('click', ()=>{ if(confirm('Reset demo data?')){ localStorage.removeItem(KEY); location.reload(); } });
+
+    // simple pantry click toggles are above
+
+    // small helper to render pantry with interactive badges from last viewed
+    function renderPantryWithCheckboxes(){ // not used broadly but kept
+    }
+
+    // initialization
+    init();
+
+    // Save periodically
+    setInterval(save, 5000);
+  </script>
+</body>
+</html>
